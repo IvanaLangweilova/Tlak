@@ -848,6 +848,69 @@
           </div>
         </div>
 
+        <div class="converterBox">
+          <strong>Kolik tlakem působím já?</strong><br>
+          Žák zadá svoji hmotnost v kilogramech. Aplikace nejprve spočítá tíhovou sílu
+          <strong>F = m · g</strong> a potom tlak podle vzorce <strong>p = F / S</strong>.
+          <br><br>
+          <strong>Příklad:</strong> Když vážím 62 kg, moje tíhová síla je přibližně
+          <strong>62 · 9,81 = 608 N</strong>. Tlak pak závisí na tom, na jak velké ploše stojím nebo ležím.
+
+          <div class="inputRow" style="margin-top:12px;">
+            <div>
+              <label for="myMassInput">Moje hmotnost m (kg):</label>
+              <input id="myMassInput" type="number" min="1" max="250" step="1" value="62">
+            </div>
+
+            <div>
+              <label for="myAreaSelect">Plocha, kterou působím na podložku:</label>
+              <select id="myAreaSelect">
+                <option value="0.04">Stojím v botách – asi 0,04 m²</option>
+                <option value="0.45">Stojím na sněžnicích – asi 0,45 m²</option>
+                <option value="0.35">Stojím na lyžích – asi 0,35 m²</option>
+                <option value="0.70">Ležím na ledě – asi 0,70 m²</option>
+                <option value="custom">Vlastní plocha</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="customAreaWrap" style="display:none;">
+            <label for="myAreaInput">Vlastní plocha S (m²):</label>
+            <input id="myAreaInput" type="number" min="0.0001" max="10" step="0.0001" value="0.04">
+          </div>
+
+          <div class="converterGrid">
+            <div class="converterCard">
+              <div class="unitName">m – hmotnost</div>
+              <div class="unitValue" id="myMassOut">62 kg</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">F – tíhová síla</div>
+              <div class="unitValue" id="myForceOut">608 N</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">S – plocha</div>
+              <div class="unitValue" id="myAreaOut">0,04 m²</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">p – tlak v Pa</div>
+              <div class="unitValue" id="myPressurePaOut">15 206 Pa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">p – tlak v kPa</div>
+              <div class="unitValue" id="myPressureKpaOut">15,21 kPa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">Dosazení</div>
+              <div class="unitValue" id="myFormulaOut" style="font-size:14px;">p = 608 / 0,04</div>
+            </div>
+          </div>
+
+          <div class="taskText" id="myPressureExplanation" style="margin-top:12px;">
+            Když stojíš v botách, působíš na menší plochu, proto je tlak větší.
+          </div>
+        </div>
+
 
         <div class="explainBox">
           <strong>Příklady ze života:</strong><br>
@@ -996,7 +1059,19 @@
       convPa: document.getElementById("convPa"),
       convKpa: document.getElementById("convKpa"),
       convMpa: document.getElementById("convMpa"),
-      convBar: document.getElementById("convBar")
+      convBar: document.getElementById("convBar"),
+
+      myMassInput: document.getElementById("myMassInput"),
+      myAreaSelect: document.getElementById("myAreaSelect"),
+      myAreaInput: document.getElementById("myAreaInput"),
+      customAreaWrap: document.getElementById("customAreaWrap"),
+      myMassOut: document.getElementById("myMassOut"),
+      myForceOut: document.getElementById("myForceOut"),
+      myAreaOut: document.getElementById("myAreaOut"),
+      myPressurePaOut: document.getElementById("myPressurePaOut"),
+      myPressureKpaOut: document.getElementById("myPressureKpaOut"),
+      myFormulaOut: document.getElementById("myFormulaOut"),
+      myPressureExplanation: document.getElementById("myPressureExplanation")
     };
 
     let currentTask = null;
@@ -1109,6 +1184,47 @@
       if(els.convKpa) els.convKpa.textContent = `${format(kpa,3)} kPa`;
       if(els.convMpa) els.convMpa.textContent = `${format(mpa,6)} MPa`;
       if(els.convBar) els.convBar.textContent = `${format(bar,4)} bar`;
+    }
+
+
+    function updateMyPressureCalculator(){
+      if(!els.myMassInput) return;
+
+      const mass = clamp(readNumber(els.myMassInput, 62), 1, 250);
+      let area;
+
+      if(els.myAreaSelect.value === "custom"){
+        els.customAreaWrap.style.display = "block";
+        area = clamp(readNumber(els.myAreaInput, 0.04), 0.0001, 10);
+      } else {
+        els.customAreaWrap.style.display = "none";
+        area = parseFloat(els.myAreaSelect.value);
+      }
+
+      const force = mass * 9.81;
+      const pressure = force / area;
+      const kpa = pressure / 1000;
+
+      els.myMassOut.textContent = `${format(mass,0)} kg`;
+      els.myForceOut.textContent = `${format(force,1)} N`;
+      els.myAreaOut.textContent = `${formatArea(area)} m²`;
+      els.myPressurePaOut.textContent = `${format(pressure,0)} Pa`;
+      els.myPressureKpaOut.textContent = `${format(kpa,2)} kPa`;
+      els.myFormulaOut.innerHTML = `p = F / S<br>p = ${format(force,1)} N / ${formatArea(area)} m²`;
+
+      let explanation = "";
+      if(area <= 0.05){
+        explanation = "Stojíš na malé ploše, například v botách. Tlak je větší, proto se můžeš do sněhu nebo ledu více zabořit.";
+      } else if(area < 0.5){
+        explanation = "Plocha je větší, například u lyží nebo sněžnic. Stejná tíha se rozloží na větší plochu a tlak je menší.";
+      } else {
+        explanation = "Když si lehneš, tvoje tíha se rozloží na velkou plochu těla. Tlak je mnohem menší, proto může led lépe vydržet.";
+      }
+
+      els.myPressureExplanation.innerHTML =
+        `<strong>Vysvětlení:</strong> ${explanation}<br><br>` +
+        `<strong>Postup:</strong> nejprve spočítáme tíhovou sílu F = m · g = ${format(mass,0)} kg · 9,81 m/s² = ${format(force,1)} N. ` +
+        `Potom tlak p = F / S = ${format(force,1)} N / ${formatArea(area)} m² = ${format(pressure,0)} Pa.`;
     }
 
     function updateAll(){
@@ -1274,6 +1390,13 @@
         const pa = readNumber(els.pressureConverterInput, 0);
         updatePressureConverter(pa);
       });
+    }
+
+    if(els.myMassInput){
+      els.myMassInput.addEventListener("input", updateMyPressureCalculator);
+      els.myAreaSelect.addEventListener("change", updateMyPressureCalculator);
+      els.myAreaInput.addEventListener("input", updateMyPressureCalculator);
+      updateMyPressureCalculator();
     }
 
     els.newTaskBtn.addEventListener("click", createTask);
