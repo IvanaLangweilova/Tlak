@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Tlak – výpočet a názorná simulace</title>
+
+  <style>
+    :root{
+      --bg1:#dbeafe;
+      --bg2:#dcfce7;
+      --bg3:#fef3c7;
+      --dark:#0f172a;
+      --muted:#475569;
+      --line:#cbd5e1;
+      --blue:#0284c7;
+      --green:#16a34a;
+      --orange:#ea580c;
+      --red:#dc2626;
+      --purple:#7c3aed;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--dark);
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.25), transparent 34%),
+        radial-gradient(circle at top right, rgba(34,197,94,.22), transparent 30%),
+        linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+    }
+
+    .page{
+      max-width:1450px;
+      margin:0 auto;
+      padding:24px;
+    }
+
+    header{
+      background:rgba(255,255,255,.95);
+      border:2px solid rgba(255,255,255,.95);
+      border-radius:28px;
+      padding:28px;
+      text-align:center;
+      margin-bottom:22px;
+      box-shadow:0 18px 40px rgba(15,23,42,.12);
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size:42px;
+      letter-spacing:.5px;
+      color:#075985;
+    }
+
+    .subtitle{
+      margin:0 auto;
+      max-width:1120px;
+      font-size:18px;
+      line-height:1.6;
+      color:var(--muted);
+    }
+
+    .author{
+      margin-top:14px;
+      font-weight:bold;
+      color:#334155;
+      font-size:15px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1.08fr .92fr;
+      gap:22px;
+      align-items:start;
+    }
+
+    .card{
+      background:rgba(255,255,255,.95);
+      border:1px solid rgba(255,255,255,.95);
+      border-radius:26px;
+      padding:22px;
+      box-shadow:0 16px 34px rgba(15,23,42,.10);
+    }
+
+    .card h2{
+      margin:0 0 16px;
+      font-size:25px;
+      color:#0f172a;
+    }
+
+    .scene{
+      background:linear-gradient(180deg,#eff6ff,#fefce8);
+      border:3px solid #93c5fd;
+      border-radius:24px;
+      padding:18px;
+      overflow:hidden;
+    }
+
+    .sceneTitle{
+      text-align:center;
+      font-size:20px;
+      font-weight:bold;
+      color:#0c4a6e;
+      margin-bottom:12px;
+    }
+
+    .visualBox{
+      position:relative;
+      height:430px;
+      background:
+        linear-gradient(180deg,#dbeafe 0%,#e0f2fe 45%,#f8fafc 45%,#f1f5f9 100%);
+      border:2px solid #bfdbfe;
+      border-radius:22px;
+      overflow:hidden;
+    }
+
+    .forceArrow{
+      position:absolute;
+      top:24px;
+      left:50%;
+      transform:translateX(-50%);
+      width:18px;
+      height:96px;
+      background:#dc2626;
+      border-radius:999px;
+      z-index:10;
+      box-shadow:0 8px 18px rgba(220,38,38,.22);
+      transition:height .25s ease;
+    }
+
+    .forceArrow::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      bottom:-22px;
+      transform:translateX(-50%);
+      width:0;
+      height:0;
+      border-left:22px solid transparent;
+      border-right:22px solid transparent;
+      border-top:28px solid #dc2626;
+    }
+
+    .forceLabel{
+      position:absolute;
+      top:22px;
+      left:calc(50% + 32px);
+      background:white;
+      border:1px solid #fecaca;
+      color:#991b1b;
+      border-radius:999px;
+      padding:6px 10px;
+      font-weight:bold;
+      font-size:13px;
+      z-index:11;
+    }
+
+    .objectArea{
+      position:absolute;
+      left:50%;
+      bottom:100px;
+      transform:translateX(-50%);
+      width:330px;
+      height:180px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      z-index:8;
+    }
+
+    .objectIcon{
+      position:absolute;
+      bottom:34px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:82px;
+      line-height:1;
+      z-index:12;
+      filter:drop-shadow(0 9px 4px rgba(15,23,42,.18));
+      transition:font-size .2s ease;
+    }
+
+    .contactArea{
+      position:absolute;
+      left:50%;
+      bottom:24px;
+      transform:translateX(-50%);
+      height:22px;
+      border-radius:999px;
+      background:linear-gradient(90deg,#38bdf8,#0ea5e9);
+      border:3px solid rgba(14,116,144,.45);
+      box-shadow:0 10px 22px rgba(14,165,233,.22);
+      transition:width .25s ease, background .25s ease;
+      z-index:9;
+    }
+
+    .contactLabel{
+      position:absolute;
+      left:50%;
+      bottom:-20px;
+      transform:translateX(-50%);
+      background:white;
+      border:1px solid #cbd5e1;
+      border-radius:999px;
+      padding:4px 9px;
+      font-size:12px;
+      font-weight:bold;
+      white-space:nowrap;
+      color:#0f172a;
+      z-index:14;
+    }
+
+    .surface{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:118px;
+      background:linear-gradient(180deg,#fef3c7,#facc15);
+      border-top:4px solid #eab308;
+      z-index:1;
+    }
+
+    .surface.snow{
+      background:linear-gradient(180deg,#f8fafc,#e0f2fe);
+      border-top:4px solid #bae6fd;
+    }
+
+    .surface.metal{
+      background:linear-gradient(180deg,#e5e7eb,#94a3b8);
+      border-top:4px solid #64748b;
+    }
+
+    .surface.wood{
+      background:repeating-linear-gradient(90deg,#92400e 0 34px,#a16207 34px 68px);
+      border-top:4px solid #78350f;
+    }
+
+    .indent{
+      position:absolute;
+      left:50%;
+      bottom:87px;
+      transform:translateX(-50%);
+      height:28px;
+      border-radius:0 0 999px 999px;
+      background:rgba(15,23,42,.18);
+      filter:blur(1px);
+      z-index:3;
+      transition:width .25s ease, height .25s ease, opacity .25s ease;
+    }
+
+    .pressureScale{
+      position:absolute;
+      right:18px;
+      top:96px;
+      width:36px;
+      height:210px;
+      border-radius:999px;
+      background:#e2e8f0;
+      border:2px solid #cbd5e1;
+      overflow:hidden;
+      z-index:9;
+    }
+
+    .pressureFill{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:30%;
+      background:linear-gradient(180deg,#f97316,#dc2626);
+      transition:height .25s ease;
+    }
+
+    .pressureScaleLabel{
+      position:absolute;
+      right:12px;
+      top:314px;
+      background:white;
+      border:1px solid #cbd5e1;
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:12px;
+      font-weight:bold;
+      color:#334155;
+      z-index:10;
+    }
+
+    .comparison{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:12px;
+    }
+
+    .stat{
+      border-radius:18px;
+      padding:14px;
+      color:white;
+      min-height:98px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      box-shadow:0 10px 22px rgba(15,23,42,.10);
+    }
+
+    .stat:nth-child(1){background:linear-gradient(135deg,#2563eb,#0284c7);}
+    .stat:nth-child(2){background:linear-gradient(135deg,#16a34a,#0f766e);}
+    .stat:nth-child(3){background:linear-gradient(135deg,#ea580c,#dc2626);}
+
+    .stat .name{
+      font-size:14px;
+      opacity:.95;
+    }
+
+    .stat .val{
+      font-size:21px;
+      font-weight:bold;
+      margin-top:8px;
+      word-break:break-word;
+    }
+
+    .resultBanner{
+      margin-top:14px;
+      background:#020617;
+      color:#22c55e;
+      border-radius:18px;
+      padding:18px;
+      text-align:center;
+      font-size:22px;
+      font-weight:bold;
+      box-shadow:inset 0 0 20px rgba(34,197,94,.22);
+      line-height:1.4;
+    }
+
+    label{
+      display:block;
+      font-weight:bold;
+      margin:10px 0 7px;
+      font-size:15px;
+    }
+
+    input, select{
+      width:100%;
+      border:2px solid var(--line);
+      border-radius:14px;
+      background:white;
+      padding:12px 14px;
+      font-size:16px;
+      outline:none;
+    }
+
+    input:focus, select:focus{
+      border-color:#0284c7;
+      box-shadow:0 0 0 4px rgba(2,132,199,.12);
+    }
+
+    input[type="range"]{
+      padding:0;
+      border:none;
+      box-shadow:none;
+    }
+
+    .inputRow{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .miniPanel{
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      border-radius:18px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+
+    .sliderInfo{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      color:#0c4a6e;
+      font-weight:bold;
+      font-size:14px;
+      margin-bottom:6px;
+    }
+
+    .btnRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:12px;
+    }
+
+    button{
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      font-size:14px;
+      font-weight:bold;
+      cursor:pointer;
+      background:#e0f2fe;
+      color:#075985;
+      transition:.2s;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      background:#bae6fd;
+    }
+
+    .formulaGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .formulaBox{
+      background:#fff7ed;
+      border:2px solid #fed7aa;
+      border-radius:18px;
+      padding:14px;
+      line-height:1.55;
+      font-size:15px;
+    }
+
+    .formulaBox strong{
+      color:#7c2d12;
+    }
+
+    .explainBox{
+      margin-top:14px;
+      background:#eff6ff;
+      border:2px solid #bfdbfe;
+      border-radius:18px;
+      padding:15px;
+      line-height:1.6;
+      color:#334155;
+    }
+
+    .symbols{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .symbolItem{
+      background:white;
+      border:1px solid #dbeafe;
+      border-radius:14px;
+      padding:10px;
+      font-size:14px;
+      line-height:1.45;
+    }
+
+    .taskBox{
+      margin-top:16px;
+      background:#f0fdf4;
+      border:2px solid #bbf7d0;
+      border-radius:20px;
+      padding:16px;
+      line-height:1.55;
+    }
+
+    .taskText{
+      background:white;
+      border:1px solid #dcfce7;
+      border-radius:16px;
+      padding:12px;
+      margin-top:10px;
+      color:#334155;
+    }
+
+    .taskAnswer{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:end;
+      margin-top:10px;
+    }
+
+    .taskResult{
+      margin-top:10px;
+      font-weight:bold;
+      color:#166534;
+    }
+
+    .small{
+      font-size:13px;
+      color:#64748b;
+      line-height:1.5;
+    }
+
+
+    .converterBox{
+      margin-top:14px;
+      background:#f8fafc;
+      border:2px solid #e2e8f0;
+      border-radius:20px;
+      padding:16px;
+      line-height:1.55;
+    }
+
+    .converterGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .converterCard{
+      background:white;
+      border:1px solid #dbeafe;
+      border-radius:16px;
+      padding:12px;
+      min-height:94px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .converterCard .unitName{
+      font-size:14px;
+      color:#475569;
+      font-weight:bold;
+    }
+
+    .converterCard .unitValue{
+      margin-top:8px;
+      font-size:20px;
+      color:#0f172a;
+      font-weight:bold;
+      word-break:break-word;
+    }
+
+    .unitTable{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .unitTableItem{
+      background:white;
+      border:1px solid #dbeafe;
+      border-radius:14px;
+      padding:10px;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    footer{
+      text-align:center;
+      color:#475569;
+      margin-top:18px;
+      font-size:14px;
+    }
+
+    @media (max-width:1150px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .comparison{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:760px){
+      .page{padding:14px;}
+      h1{font-size:32px;}
+      .subtitle{font-size:16px;}
+      .visualBox{height:390px;}
+      .objectIcon{font-size:62px;}
+      .inputRow,.formulaGrid,.symbols,.taskAnswer,.converterGrid,.unitTable{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header>
+      <h1>TLAK</h1>
+      <p class="subtitle">
+        Tlak říká, jak velká síla působí na určitou plochu. Čím větší síla působí na menší plochu,
+        tím větší tlak vzniká.
+      </p>
+      <p class="subtitle" style="margin-top:10px;">
+        <strong>K čemu je to dobré?</strong> Díky tlaku pochopíme, proč se hřebík zatlouká špičkou,
+        proč jsou sněžnice široké, proč je nůž ostrý nebo proč má pásový bagr velkou styčnou plochu.
+      </p>
+      <div class="author">Autorka: Mgr. Ivana Langweilová – ILang</div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Interaktivní simulace tlaku</h2>
+
+        <div class="scene">
+          <div class="sceneTitle">SLEDUJ, JAK SE MĚNÍ TLAK</div>
+          <div class="small" style="text-align:center;margin:-4px 0 10px;color:#475569;">
+            Změň sílu nebo plochu. Uvidíš, že malá plocha znamená větší tlak.
+          </div>
+
+          <div class="visualBox">
+            <div class="forceArrow" id="forceArrow"></div>
+            <div class="forceLabel" id="forceLabel">F = 800 N</div>
+
+            <div class="objectArea">
+              <div class="objectIcon" id="objectIcon">🥾</div>
+              <div class="contactArea" id="contactArea">
+                <div class="contactLabel" id="contactLabel">S = 0,04 m²</div>
+              </div>
+            </div>
+
+            <div class="indent" id="indent"></div>
+            <div class="surface snow" id="surface"></div>
+
+            <div class="pressureScale">
+              <div class="pressureFill" id="pressureFill"></div>
+            </div>
+            <div class="pressureScaleLabel">tlak</div>
+          </div>
+        </div>
+
+        <div class="comparison">
+          <div class="stat">
+            <div class="name">Síla F</div>
+            <div class="val" id="forceStat">800 N</div>
+            <div class="name">působí dolů</div>
+          </div>
+
+          <div class="stat">
+            <div class="name">Plocha S</div>
+            <div class="val" id="areaStat">0,04 m²</div>
+            <div class="name">styčná plocha</div>
+          </div>
+
+          <div class="stat">
+            <div class="name">Tlak p</div>
+            <div class="val" id="pressureStat">20 000 Pa</div>
+            <div class="name" id="pressureStatSmall">20 kPa</div>
+          </div>
+        </div>
+
+        <div class="resultBanner" id="resultBanner">
+          Výsledek se zobrazí zde.
+        </div>
+
+        <div class="formulaGrid">
+          <div class="formulaBox">
+            <strong>Výpočet tlaku:</strong><br>
+            <span id="pressureCalc">p = F / S</span>
+          </div>
+          <div class="formulaBox">
+            <strong>Převody:</strong><br>
+            <span id="conversionCalc">Pa, kPa, MPa</span>
+          </div>
+        </div>
+
+        <div class="taskBox">
+          <strong>Úloha pro žáky</strong><br>
+          Vygeneruj úlohu a dopočítej tlak podle vzorce <strong>p = F / S</strong>.
+
+          <div class="btnRow">
+            <button id="newTaskBtn">Náhodná úloha</button>
+            <button id="checkTaskBtn">Zkontrolovat odpověď</button>
+            <button id="showTaskBtn">Ukázat výsledek</button>
+          </div>
+
+          <div class="taskText" id="taskText">
+            Klikni na „Náhodná úloha“.
+          </div>
+
+          <div class="taskAnswer">
+            <div>
+              <label for="taskAnswerInput">Odpověď žáka – tlak v Pa:</label>
+              <input id="taskAnswerInput" type="number" step="1" placeholder="např. 20000">
+            </div>
+            <button id="clearTaskBtn">Vymazat</button>
+          </div>
+
+          <div class="taskResult" id="taskResult"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Nastavení a vysvětlení</h2>
+
+        <div class="miniPanel">
+          <label for="presetSelect">Vyber ukázku:</label>
+          <select id="presetSelect">
+            <option value="boots">Člověk v botách na sněhu</option>
+            <option value="snowshoes">Člověk na sněžnicích</option>
+            <option value="nailTip">Hřebík špičkou</option>
+            <option value="nailHead">Hřebík hlavičkou</option>
+            <option value="knife">Ostrý nůž</option>
+            <option value="tractor">Pásový bagr</option>
+            <option value="skis">Lyže</option>
+          </select>
+
+          <div class="btnRow">
+            <button data-preset="boots">Boty</button>
+            <button data-preset="snowshoes">Sněžnice</button>
+            <button data-preset="nailTip">Hřebík špičkou</button>
+            <button data-preset="nailHead">Hřebík hlavičkou</button>
+            <button data-preset="knife">Nůž</button>
+            <button data-preset="tractor">Bagr</button>
+            <button data-preset="skis">Lyže</button>
+          </div>
+        </div>
+
+        <div class="miniPanel">
+          <div class="inputRow">
+            <div>
+              <label for="forceInput">Síla F (N):</label>
+              <input id="forceInput" type="number" min="1" max="100000" step="1" value="800">
+            </div>
+
+            <div>
+              <label for="areaInput">Plocha S (m²):</label>
+              <input id="areaInput" type="number" min="0.000001" max="100" step="0.0001" value="0.04">
+            </div>
+          </div>
+
+          <div class="sliderInfo">
+            <span>Síla F</span>
+            <span id="forceValue">800 N</span>
+          </div>
+          <input id="forceSlider" type="range" min="1" max="100000" step="1" value="800">
+
+          <div class="sliderInfo" style="margin-top:12px;">
+            <span>Plocha S</span>
+            <span id="areaValue">0,04 m²</span>
+          </div>
+          <input id="areaSlider" type="range" min="0.0001" max="10" step="0.0001" value="0.04">
+        </div>
+
+        <div class="explainBox">
+          <strong>Co je tlak?</strong><br>
+          Tlak vzniká tehdy, když síla působí na plochu. Pokud stejná síla působí na menší plochu,
+          tlak je větší. Proto ostrý nůž krájí lépe než tupý a hřebík se zatlouká špičkou.
+        </div>
+
+        <div class="formulaGrid">
+          <div class="formulaBox">
+            <strong>Základní vzorec:</strong><br>
+            p = F / S<br><br>
+            tlak = síla / plocha
+          </div>
+
+          <div class="formulaBox">
+            <strong>Odvozené vzorce:</strong><br>
+            F = p · S<br>
+            S = F / p
+          </div>
+        </div>
+
+        <div class="explainBox">
+          <strong>Vysvětlivky:</strong>
+          <div class="symbols">
+            <div class="symbolItem"><strong>p</strong> – tlak, jednotka pascal, značka Pa</div>
+            <div class="symbolItem"><strong>F</strong> – síla, jednotka newton, značka N</div>
+            <div class="symbolItem"><strong>S</strong> – plocha, jednotka metr čtvereční, značka m²</div>
+            <div class="symbolItem"><strong>1 Pa</strong> – tlak, kdy síla 1 N působí na plochu 1 m²</div>
+            <div class="symbolItem"><strong>1 kPa</strong> = 1000 Pa</div>
+            <div class="symbolItem"><strong>1 MPa</strong> = 1 000 000 Pa</div>
+          </div>
+        </div>
+
+        <div class="explainBox">
+          <strong>Převody plochy:</strong><br>
+          1 m² = 10 000 cm²<br>
+          1 cm² = 0,0001 m²<br><br>
+          Pokud je plocha zadaná v cm², musí se pro výpočet v pascalech převést na m².
+        </div>
+
+        <div class="explainBox">
+          <strong>Jednotky tlaku:</strong><br>
+          Základní jednotkou tlaku je <strong>pascal</strong>, značka <strong>Pa</strong>.
+          V praxi se často používá také <strong>kilopascal</strong> a <strong>megapascal</strong>,
+          protože samotné pascaly mohou vycházet jako velká čísla.
+          <div class="unitTable">
+            <div class="unitTableItem">
+              <strong>Pa – pascal</strong><br>
+              Základní jednotka tlaku.<br>
+              1 Pa znamená, že síla 1 N působí na plochu 1 m².
+            </div>
+            <div class="unitTableItem">
+              <strong>kPa – kilopascal</strong><br>
+              Používá se pro větší tlak.<br>
+              <strong>1 kPa = 1000 Pa</strong>
+            </div>
+            <div class="unitTableItem">
+              <strong>MPa – megapascal</strong><br>
+              Používá se pro velmi velký tlak.<br>
+              <strong>1 MPa = 1 000 000 Pa</strong>
+            </div>
+            <div class="unitTableItem">
+              <strong>bar</strong><br>
+              Jednotka často používaná u pneumatik nebo tlaku vzduchu.<br>
+              <strong>1 bar = 100 000 Pa = 100 kPa</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="converterBox">
+          <strong>Převodník tlaku:</strong><br>
+          Zadej tlak v pascalech a aplikace ho převede na kilopascaly, megapascaly a bary.
+          <label for="pressureConverterInput" style="margin-top:12px;">Tlak v Pa:</label>
+          <input id="pressureConverterInput" type="number" min="0" step="1" value="20000">
+
+          <div class="converterGrid">
+            <div class="converterCard">
+              <div class="unitName">Pa – pascal</div>
+              <div class="unitValue" id="convPa">20 000 Pa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">kPa – kilopascal</div>
+              <div class="unitValue" id="convKpa">20 kPa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">MPa – megapascal</div>
+              <div class="unitValue" id="convMpa">0,02 MPa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">bar</div>
+              <div class="unitValue" id="convBar">0,2 bar</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">Převod z kPa</div>
+              <div class="unitValue">1 kPa = 1000 Pa</div>
+            </div>
+            <div class="converterCard">
+              <div class="unitName">Převod z MPa</div>
+              <div class="unitValue">1 MPa = 1000 kPa</div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="explainBox">
+          <strong>Příklady ze života:</strong><br>
+          <div class="unitTable">
+            <div class="unitTableItem">
+              <strong>Chůze po ledu</strong><br>
+              Když člověk stojí na ledu, celá jeho tíha působí jen na malou plochu bot.
+              Tlak je proto velký a led může prasknout.
+              <br><br>
+              Když si člověk lehne, stejná tíha se rozloží na mnohem větší plochu těla.
+              Tlak se zmenší a led může vydržet.
+              <br><br>
+              <strong>Stejná síla + větší plocha = menší tlak.</strong>
+            </div>
+
+            <div class="unitTableItem">
+              <strong>Batoh s úzkými a širokými popruhy</strong><br>
+              Těžký batoh s úzkými popruhy tlačí do ramen více, protože síla působí na malou plochu.
+              <br><br>
+              Široké a měkké popruhy rozloží tíhu batohu na větší plochu ramen, proto méně řežou a jsou pohodlnější.
+              <br><br>
+              <strong>Stejná hmotnost + větší plocha popruhů = menší tlak na ramena.</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="explainBox">
+          <strong>Příklad s jednotkami:</strong><br>
+          Síla <strong>800 N</strong> působí na plochu <strong>0,04 m²</strong>.
+          <br><br>
+          <strong>Vzorec:</strong><br>
+          p = F / S
+          <br><br>
+          <strong>Dosazení:</strong><br>
+          p = 800 N / 0,04 m²<br>
+          p = <strong>20 000 Pa</strong><br>
+          p = <strong>20 kPa</strong>
+          <br><br>
+          <strong>Výsledek:</strong><br>
+          Tlak je 20 000 Pa, tedy 20 kPa.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Webová učební pomůcka pro výuku tlaku, síly, plochy a převodů jednotek.
+    </footer>
+  </div>
+
+  <script>
+    const presets = {
+      boots: {
+        label: "Člověk v botách",
+        icon: "🥾",
+        force: 800,
+        area: 0.04,
+        surface: "snow",
+        explanation: "Boty mají menší styčnou plochu než sněžnice, proto se člověk do sněhu více boří."
+      },
+      snowshoes: {
+        label: "Sněžnice",
+        icon: "🥾",
+        force: 800,
+        area: 0.45,
+        surface: "snow",
+        explanation: "Sněžnice mají velkou plochu, proto se stejná síla rozloží na větší plochu a tlak je menší."
+      },
+      nailTip: {
+        label: "Hřebík špičkou",
+        icon: "📍",
+        force: 120,
+        area: 0.000005,
+        surface: "wood",
+        explanation: "Špička hřebíku má velmi malou plochu, proto vzniká velký tlak a hřebík proniká do dřeva."
+      },
+      nailHead: {
+        label: "Hřebík hlavičkou",
+        icon: "🔩",
+        force: 120,
+        area: 0.0003,
+        surface: "wood",
+        explanation: "Hlavička hřebíku má větší plochu než špička, proto je tlak menší."
+      },
+      knife: {
+        label: "Ostrý nůž",
+        icon: "🔪",
+        force: 60,
+        area: 0.00002,
+        surface: "wood",
+        explanation: "Ostří nože má velmi malou plochu, proto vzniká velký tlak a nůž snadněji krájí."
+      },
+      tractor: {
+        label: "Pásový bagr",
+        icon: "🚜",
+        force: 70000,
+        area: 4.5,
+        surface: "soil",
+        explanation: "Pásy bagru zvětšují styčnou plochu, proto se těžký stroj méně boří do měkkého povrchu."
+      },
+      skis: {
+        label: "Lyže",
+        icon: "⛷️",
+        force: 700,
+        area: 0.35,
+        surface: "snow",
+        explanation: "Lyže mají větší plochu než boty, proto se lyžař méně boří do sněhu."
+      }
+    };
+
+    const els = {
+      presetSelect: document.getElementById("presetSelect"),
+
+      forceInput: document.getElementById("forceInput"),
+      areaInput: document.getElementById("areaInput"),
+      forceSlider: document.getElementById("forceSlider"),
+      areaSlider: document.getElementById("areaSlider"),
+      forceValue: document.getElementById("forceValue"),
+      areaValue: document.getElementById("areaValue"),
+
+      forceArrow: document.getElementById("forceArrow"),
+      forceLabel: document.getElementById("forceLabel"),
+      objectIcon: document.getElementById("objectIcon"),
+      contactArea: document.getElementById("contactArea"),
+      contactLabel: document.getElementById("contactLabel"),
+      surface: document.getElementById("surface"),
+      indent: document.getElementById("indent"),
+      pressureFill: document.getElementById("pressureFill"),
+
+      forceStat: document.getElementById("forceStat"),
+      areaStat: document.getElementById("areaStat"),
+      pressureStat: document.getElementById("pressureStat"),
+      pressureStatSmall: document.getElementById("pressureStatSmall"),
+      resultBanner: document.getElementById("resultBanner"),
+      pressureCalc: document.getElementById("pressureCalc"),
+      conversionCalc: document.getElementById("conversionCalc"),
+
+      newTaskBtn: document.getElementById("newTaskBtn"),
+      checkTaskBtn: document.getElementById("checkTaskBtn"),
+      showTaskBtn: document.getElementById("showTaskBtn"),
+      clearTaskBtn: document.getElementById("clearTaskBtn"),
+      taskText: document.getElementById("taskText"),
+      taskAnswerInput: document.getElementById("taskAnswerInput"),
+      taskResult: document.getElementById("taskResult"),
+
+      pressureConverterInput: document.getElementById("pressureConverterInput"),
+      convPa: document.getElementById("convPa"),
+      convKpa: document.getElementById("convKpa"),
+      convMpa: document.getElementById("convMpa"),
+      convBar: document.getElementById("convBar")
+    };
+
+    let currentTask = null;
+    let currentPreset = "boots";
+
+    function format(n, decimals = 2){
+      return new Intl.NumberFormat("cs-CZ", {
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: 0
+      }).format(n);
+    }
+
+    function formatArea(n){
+      if(n < 0.001) return format(n, 6);
+      if(n < 0.01) return format(n, 5);
+      if(n < 0.1) return format(n, 4);
+      return format(n, 3);
+    }
+
+    function clamp(value, min, max){
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function readNumber(input, fallback){
+      const value = parseFloat(String(input.value).replace(",", "."));
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function setPreset(name){
+      const p = presets[name];
+      if(!p) return;
+
+      currentPreset = name;
+      els.presetSelect.value = name;
+
+      els.forceInput.value = p.force;
+      els.areaInput.value = p.area;
+      els.forceSlider.value = Math.min(p.force, 100000);
+      els.areaSlider.value = Math.min(Math.max(p.area, 0.0001), 10);
+
+      els.objectIcon.textContent = p.icon;
+      els.surface.className = "surface";
+
+      if(p.surface === "snow"){
+        els.surface.classList.add("snow");
+      } else if(p.surface === "wood"){
+        els.surface.classList.add("wood");
+      } else if(p.surface === "metal"){
+        els.surface.classList.add("metal");
+      }
+
+      updateAll();
+    }
+
+    function syncFromInputs(){
+      const f = clamp(readNumber(els.forceInput, 1), 1, 100000);
+      const s = clamp(readNumber(els.areaInput, 0.0001), 0.000001, 100);
+
+      els.forceSlider.value = Math.min(f, 100000);
+      els.areaSlider.value = Math.min(Math.max(s, 0.0001), 10);
+    }
+
+    function syncFromSliders(){
+      els.forceInput.value = els.forceSlider.value;
+      els.areaInput.value = els.areaSlider.value;
+    }
+
+    function updateVisual(force, area, pressure){
+      const forceHeight = clamp(50 + (force / 100000) * 160, 55, 210);
+      els.forceArrow.style.height = `${forceHeight}px`;
+
+      const contactWidth = clamp(24 + Math.sqrt(area) * 260, 22, 280);
+      els.contactArea.style.width = `${contactWidth}px`;
+
+      const iconSize = currentPreset === "tractor" ? 92 : currentPreset === "skis" ? 78 : currentPreset === "nailTip" ? 72 : 82;
+      els.objectIcon.style.fontSize = `${iconSize}px`;
+
+      const pressureScaled = clamp(Math.log10(pressure + 1) / 7, 0.05, 1);
+      els.pressureFill.style.height = `${pressureScaled * 100}%`;
+
+      const indentWidth = clamp(30 + pressureScaled * 210, 30, 240);
+      const indentHeight = clamp(8 + pressureScaled * 42, 8, 48);
+      els.indent.style.width = `${indentWidth}px`;
+      els.indent.style.height = `${indentHeight}px`;
+      els.indent.style.opacity = pressureScaled;
+
+      if(pressure < 5000){
+        els.contactArea.style.background = "linear-gradient(90deg,#22c55e,#86efac)";
+      } else if(pressure < 50000){
+        els.contactArea.style.background = "linear-gradient(90deg,#38bdf8,#0ea5e9)";
+      } else if(pressure < 500000){
+        els.contactArea.style.background = "linear-gradient(90deg,#f59e0b,#f97316)";
+      } else {
+        els.contactArea.style.background = "linear-gradient(90deg,#ef4444,#991b1b)";
+      }
+    }
+
+
+    function updatePressureConverter(valuePa){
+      const pa = Math.max(0, Number.isFinite(valuePa) ? valuePa : 0);
+      const kpa = pa / 1000;
+      const mpa = pa / 1000000;
+      const bar = pa / 100000;
+
+      if(els.pressureConverterInput && document.activeElement !== els.pressureConverterInput){
+        els.pressureConverterInput.value = Math.round(pa);
+      }
+
+      if(els.convPa) els.convPa.textContent = `${format(pa,0)} Pa`;
+      if(els.convKpa) els.convKpa.textContent = `${format(kpa,3)} kPa`;
+      if(els.convMpa) els.convMpa.textContent = `${format(mpa,6)} MPa`;
+      if(els.convBar) els.convBar.textContent = `${format(bar,4)} bar`;
+    }
+
+    function updateAll(){
+      const force = clamp(readNumber(els.forceInput, 1), 1, 100000);
+      const area = clamp(readNumber(els.areaInput, 0.0001), 0.000001, 100);
+      const pressure = force / area;
+      const kPa = pressure / 1000;
+      const MPa = pressure / 1000000;
+      const areaCm2 = area * 10000;
+
+      updatePressureConverter(pressure);
+
+      els.forceInput.value = force;
+      els.areaInput.value = area;
+
+      els.forceValue.textContent = `${format(force, 0)} N`;
+      els.areaValue.textContent = `${formatArea(area)} m²`;
+      els.forceLabel.textContent = `F = ${format(force, 0)} N`;
+      els.contactLabel.textContent = `S = ${formatArea(area)} m²`;
+
+      els.forceStat.textContent = `${format(force, 0)} N`;
+      els.areaStat.textContent = `${formatArea(area)} m²`;
+      els.pressureStat.textContent = `${format(pressure, 0)} Pa`;
+      els.pressureStatSmall.textContent = `${format(kPa, 2)} kPa`;
+
+      updateVisual(force, area, pressure);
+
+      els.pressureCalc.innerHTML =
+        `p = F / S<br>` +
+        `p = ${format(force,0)} N / ${formatArea(area)} m²<br>` +
+        `p = <strong>${format(pressure,0)} Pa</strong>`;
+
+      els.conversionCalc.innerHTML =
+        `${format(pressure,0)} Pa<br>` +
+        `= <strong>${format(kPa,2)} kPa</strong><br>` +
+        `= <strong>${format(MPa,4)} MPa</strong><br>` +
+        `Plocha: ${format(areaCm2,2)} cm²`;
+
+      const explanation = presets[currentPreset]?.explanation || "";
+
+      if(pressure < 5000){
+        els.resultBanner.innerHTML = `🟢 Malý tlak<br><span style="font-size:15px;color:#a7f3d0;">${explanation}</span>`;
+      } else if(pressure < 50000){
+        els.resultBanner.innerHTML = `🔵 Střední tlak<br><span style="font-size:15px;color:#bfdbfe;">${explanation}</span>`;
+      } else if(pressure < 500000){
+        els.resultBanner.innerHTML = `🟠 Velký tlak<br><span style="font-size:15px;color:#fed7aa;">${explanation}</span>`;
+      } else {
+        els.resultBanner.innerHTML = `🔴 Velmi velký tlak<br><span style="font-size:15px;color:#fecaca;">${explanation}</span>`;
+      }
+    }
+
+    function createTask(){
+      const examples = [
+        { force: 800, area: 0.04, text:"Člověk v botách působí silou 800 N na plochu 0,04 m²." },
+        { force: 800, area: 0.40, text:"Člověk na sněžnicích působí silou 800 N na plochu 0,40 m²." },
+        { force: 120, area: 0.000005, text:"Hřebík špičkou působí silou 120 N na plochu 0,000005 m²." },
+        { force: 60, area: 0.00002, text:"Ostrý nůž působí silou 60 N na plochu 0,00002 m²." },
+        { force: 70000, area: 4.5, text:"Pásový bagr působí silou 70 000 N na plochu 4,5 m²." },
+        { force: 700, area: 0.35, text:"Lyžař působí silou 700 N na plochu 0,35 m²." }
+      ];
+
+      const ex = examples[Math.floor(Math.random() * examples.length)];
+      const pressure = ex.force / ex.area;
+
+      currentTask = {
+        force: ex.force,
+        area: ex.area,
+        pressure
+      };
+
+      els.taskText.innerHTML =
+        `${ex.text}<br><br>` +
+        `<strong>Zápis:</strong><br>` +
+        `F = ${format(ex.force,0)} N<br>` +
+        `S = ${formatArea(ex.area)} m²<br>` +
+        `p = ? Pa<br><br>` +
+        `<strong>Dosazení:</strong><br>` +
+        `p = F / S<br>` +
+        `p = ${format(ex.force,0)} N / ${formatArea(ex.area)} m²`;
+
+      els.taskAnswerInput.value = "";
+      els.taskResult.textContent = "";
+
+      els.forceInput.value = ex.force;
+      els.areaInput.value = ex.area;
+      syncFromInputs();
+      updateAll();
+    }
+
+    function checkTask(){
+      if(!currentTask){
+        els.taskResult.textContent = "Nejdříve klikni na „Náhodná úloha“.";
+        return;
+      }
+
+      const answer = readNumber(els.taskAnswerInput, NaN);
+
+      if(!Number.isFinite(answer)){
+        els.taskResult.textContent = "Zadej výsledek v pascalech.";
+        return;
+      }
+
+      const allowed = Math.max(5, currentTask.pressure * 0.03);
+      const diff = Math.abs(answer - currentTask.pressure);
+
+      if(diff <= allowed){
+        els.taskResult.textContent = `✅ Správně. Výsledek je přibližně ${format(currentTask.pressure,0)} Pa.`;
+      } else {
+        els.taskResult.textContent = `❌ Zatím ne. Správně je přibližně ${format(currentTask.pressure,0)} Pa.`;
+      }
+    }
+
+    function showTaskResult(){
+      if(!currentTask){
+        els.taskResult.textContent = "Nejdříve klikni na „Náhodná úloha“.";
+        return;
+      }
+
+      els.taskResult.innerHTML =
+        `Správný výsledek:<br>` +
+        `p = ${format(currentTask.force,0)} N / ${formatArea(currentTask.area)} m² = ` +
+        `<strong>${format(currentTask.pressure,0)} Pa</strong><br>` +
+        `To je ${format(currentTask.pressure / 1000,2)} kPa.`;
+    }
+
+    function clearTask(){
+      currentTask = null;
+      els.taskText.textContent = "Klikni na „Náhodná úloha“.";
+      els.taskAnswerInput.value = "";
+      els.taskResult.textContent = "";
+    }
+
+    els.presetSelect.addEventListener("change", () => setPreset(els.presetSelect.value));
+
+    document.querySelectorAll("button[data-preset]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        setPreset(btn.dataset.preset);
+      });
+    });
+
+    els.forceInput.addEventListener("input", () => {
+      syncFromInputs();
+      updateAll();
+    });
+
+    els.areaInput.addEventListener("input", () => {
+      syncFromInputs();
+      updateAll();
+    });
+
+    els.forceSlider.addEventListener("input", () => {
+      syncFromSliders();
+      updateAll();
+    });
+
+    els.areaSlider.addEventListener("input", () => {
+      syncFromSliders();
+      updateAll();
+    });
+
+    if(els.pressureConverterInput){
+      els.pressureConverterInput.addEventListener("input", () => {
+        const pa = readNumber(els.pressureConverterInput, 0);
+        updatePressureConverter(pa);
+      });
+    }
+
+    els.newTaskBtn.addEventListener("click", createTask);
+    els.checkTaskBtn.addEventListener("click", checkTask);
+    els.showTaskBtn.addEventListener("click", showTaskResult);
+    els.clearTaskBtn.addEventListener("click", clearTask);
+
+    setPreset("boots");
+  </script>
+</body>
+</html>
